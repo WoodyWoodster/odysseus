@@ -1,4 +1,5 @@
 use actix_web::{web, HttpResponse, Responder};
+use shared::UseCase;
 use uuid::Uuid;
 
 use crate::domain::{DomainError, GetUserUseCase, User};

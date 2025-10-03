@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "shared",
     "services/users",
 ]
 resolver = "2"

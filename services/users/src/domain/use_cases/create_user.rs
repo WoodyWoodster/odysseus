@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+use shared::UseCase;
 use std::sync::Arc;
 
 use crate::domain::{CreateUserData, DomainError, DomainResult, User, UserRepository};
@@ -10,8 +12,11 @@ impl CreateUserUseCase {
     pub fn new(repository: Arc<dyn UserRepository>) -> Self {
         Self { repository }
     }
+}
 
-    pub async fn execute(&self, data: CreateUserData) -> DomainResult<User> {
+#[async_trait]
+impl UseCase<CreateUserData, DomainResult<User>> for CreateUserUseCase {
+    async fn execute(&self, data: CreateUserData) -> DomainResult<User> {
         if !data.email.contains('@') || data.email.len() < 3 {
             return Err(DomainError::ValidationError(
                 "Invalid email format".to_string(),
