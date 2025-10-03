@@ -22,7 +22,10 @@ Rust microservices monorepo built with Cargo workspaces.
 
 ```
 odysseus/
-├── Cargo.toml              # Workspace root
+├── Cargo.toml
+├── shared/
+│   └── src/
+│       └── lib.rs
 └── services/
     └── users/
         └── src/
