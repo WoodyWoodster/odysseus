@@ -2,7 +2,13 @@ use async_trait::async_trait;
 use shared::UseCase;
 use std::sync::Arc;
 
-use crate::domain::{CreateUserData, DomainError, DomainResult, User, UserRepository};
+use crate::domain::{CreateUserData, DomainError, User, UserRepository};
+
+#[derive(Debug)]
+pub enum CreateUserUseCaseError {
+    ValidationError(String),
+    DatabaseError(String),
+}
 
 pub struct CreateUserUseCase {
     repository: Arc<dyn UserRepository>,
@@ -15,28 +21,35 @@ impl CreateUserUseCase {
 }
 
 #[async_trait]
-impl UseCase<CreateUserData, DomainResult<User>> for CreateUserUseCase {
-    async fn execute(&self, data: CreateUserData) -> DomainResult<User> {
+impl UseCase<CreateUserData, Result<User, CreateUserUseCaseError>> for CreateUserUseCase {
+    async fn execute(&self, data: CreateUserData) -> Result<User, CreateUserUseCaseError> {
         if !data.email.contains('@') || data.email.len() < 3 {
-            return Err(DomainError::ValidationError(
+            return Err(CreateUserUseCaseError::ValidationError(
                 "Invalid email format".to_string(),
             ));
         }
 
         let name_trimmed = data.name.trim();
         if name_trimmed.is_empty() {
-            return Err(DomainError::ValidationError(
+            return Err(CreateUserUseCaseError::ValidationError(
                 "Name cannot be empty".to_string(),
             ));
         }
 
         if name_trimmed.len() > 255 {
-            return Err(DomainError::ValidationError(
+            return Err(CreateUserUseCaseError::ValidationError(
                 "Name is too long (max 255 characters)".to_string(),
             ));
         }
 
-        self.repository.create(data).await
+        self.repository.create(data).await.map_err(|e| match e {
+            DomainError::ValidationError(msg) => CreateUserUseCaseError::ValidationError(msg),
+            DomainError::DatabaseError(msg) => CreateUserUseCaseError::DatabaseError(msg),
+            _ => {
+                log::error!("Unexpected error in CreateUserUseCase: {:?}", e);
+                CreateUserUseCaseError::DatabaseError("Unexpected error".to_string())
+            }
+        })
     }
 }
 

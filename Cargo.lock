@@ -2932,6 +2932,7 @@ dependencies = [
  "const-oid",
  "dotenvy",
  "env_logger",
+ "log",
  "sea-orm",
  "serde",
  "serde_json",

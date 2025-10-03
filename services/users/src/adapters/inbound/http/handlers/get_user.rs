@@ -2,7 +2,7 @@ use actix_web::{web, HttpResponse, Responder};
 use shared::UseCase;
 use uuid::Uuid;
 
-use crate::domain::{DomainError, GetUserUseCase, User};
+use crate::domain::{GetUserUseCase, GetUserUseCaseError, User};
 
 use super::super::dtos::GetUserError;
 
@@ -27,14 +27,11 @@ pub async fn get_user(
 
     match use_case.execute(user_id).await {
         Ok(user) => HttpResponse::Ok().json(user),
-        Err(DomainError::NotFound(msg)) => {
+        Err(GetUserUseCaseError::NotFound(msg)) => {
             HttpResponse::NotFound().json(GetUserError { error: msg })
         }
-        Err(DomainError::DatabaseError(msg)) => {
+        Err(GetUserUseCaseError::DatabaseError(msg)) => {
             HttpResponse::InternalServerError().json(GetUserError { error: msg })
-        }
-        Err(DomainError::ValidationError(msg)) => {
-            HttpResponse::BadRequest().json(GetUserError { error: msg })
         }
     }
 }

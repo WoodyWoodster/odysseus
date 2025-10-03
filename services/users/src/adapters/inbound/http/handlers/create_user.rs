@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Responder};
 use shared::UseCase;
 
-use crate::domain::{CreateUserData, CreateUserUseCase, DomainError, User};
+use crate::domain::{CreateUserData, CreateUserUseCase, CreateUserUseCaseError, User};
 
 use super::super::dtos::{CreateUserError, CreateUserRequest};
 
@@ -27,14 +27,11 @@ pub async fn create_user(
 
     match use_case.execute(data).await {
         Ok(user) => HttpResponse::Created().json(user),
-        Err(DomainError::DatabaseError(msg)) => {
-            HttpResponse::InternalServerError().json(CreateUserError { error: msg })
-        }
-        Err(DomainError::ValidationError(msg)) => {
+        Err(CreateUserUseCaseError::ValidationError(msg)) => {
             HttpResponse::BadRequest().json(CreateUserError { error: msg })
         }
-        Err(DomainError::NotFound(msg)) => {
-            HttpResponse::NotFound().json(CreateUserError { error: msg })
+        Err(CreateUserUseCaseError::DatabaseError(msg)) => {
+            HttpResponse::InternalServerError().json(CreateUserError { error: msg })
         }
     }
 }
