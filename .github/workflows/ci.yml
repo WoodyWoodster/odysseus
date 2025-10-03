@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: odysseus
+          POSTGRES_PASSWORD: odysseus_password
+          POSTGRES_DB: odysseus_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+    - name: Run tests
+      run: cargo test --all-features --workspace
+      env:
+        DATABASE_URL: postgres://odysseus:odysseus_password@localhost:5432/odysseus_db
+
+    - name: Build release
+      run: cargo build --release --workspace
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build users-service Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: services/users/Dockerfile
+        push: false
+        tags: odysseus-users:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
