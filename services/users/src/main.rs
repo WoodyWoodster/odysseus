@@ -66,7 +66,10 @@ async fn main() -> std::io::Result<()> {
     let bind_address = format!("{}:{}", host, port);
 
     println!("🚀 Server starting on http://{}", bind_address);
-    println!("📚 Swagger UI available at http://{}/swagger-ui/", bind_address);
+    println!(
+        "📚 Swagger UI available at http://{}/swagger-ui/",
+        bind_address
+    );
 
     let openapi = ApiDoc::openapi();
 
@@ -77,8 +80,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(create_user_use_case.clone())
             .configure(configure_routes)
             .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}")
-                    .url("/api-docs/openapi.json", openapi.clone())
+                SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-docs/openapi.json", openapi.clone()),
             )
     })
     .bind(&bind_address)?
