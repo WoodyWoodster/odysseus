@@ -1,14 +1,10 @@
-FROM rust:1.84 as builder
+FROM rust:1.84 AS builder
 
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
-COPY services/users/Cargo.toml ./services/users/
-
-RUN mkdir -p services/users/src && echo "fn main() {}" > services/users/src/main.rs
-RUN cargo build --release -p users && rm -rf services/users/src
-
-COPY services/users/src ./services/users/src
+COPY shared ./shared
+COPY services/users ./services/users
 
 RUN cargo build --release -p users
 
