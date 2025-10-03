@@ -88,6 +88,10 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Convert repository owner to lowercase
+      id: lowercase
+      run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
     - name: Build and push users-service
       uses: docker/build-push-action@v5
       with:
@@ -95,7 +99,7 @@ jobs:
         file: services/users/Dockerfile
         push: true
         tags: |
-          ghcr.io/${{ github.repository_owner }}/odysseus-users:latest
-          ghcr.io/${{ github.repository_owner }}/odysseus-users:${{ github.sha }}
+          ghcr.io/${{ steps.lowercase.outputs.owner }}/odysseus-users:latest
+          ghcr.io/${{ steps.lowercase.outputs.owner }}/odysseus-users:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
