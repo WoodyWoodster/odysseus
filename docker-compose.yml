@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: odysseus-postgres
+    environment:
+      POSTGRES_USER: odysseus
+      POSTGRES_PASSWORD: odysseus_password
+      POSTGRES_DB: odysseus_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odysseus -d odysseus_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  users-service:
+    build:
+      context: .
+      dockerfile: services/users/Dockerfile
+    container_name: users-service
+    environment:
+      DATABASE_URL: postgres://odysseus:odysseus_password@postgres:5432/odysseus_db
+      RUST_LOG: info
+      HOST: 0.0.0.0
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
