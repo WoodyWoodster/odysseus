@@ -24,13 +24,16 @@ impl GetUserUseCase {
 #[async_trait]
 impl UseCase<Uuid, Result<User, GetUserUseCaseError>> for GetUserUseCase {
     async fn execute(&self, user_id: Uuid) -> Result<User, GetUserUseCaseError> {
-        self.repository.find_by_id(user_id).await.map_err(|e| match e {
-            DomainError::NotFound(msg) => GetUserUseCaseError::NotFound(msg),
-            DomainError::DatabaseError(msg) => GetUserUseCaseError::DatabaseError(msg),
-            _ => {
-                log::error!("Unexpected error in GetUserUseCase: {:?}", e);
-                GetUserUseCaseError::DatabaseError("Unexpected error".to_string())
-            }
-        })
+        self.repository
+            .find_by_id(user_id)
+            .await
+            .map_err(|e| match e {
+                DomainError::NotFound(msg) => GetUserUseCaseError::NotFound(msg),
+                DomainError::DatabaseError(msg) => GetUserUseCaseError::DatabaseError(msg),
+                _ => {
+                    log::error!("Unexpected error in GetUserUseCase: {:?}", e);
+                    GetUserUseCaseError::DatabaseError("Unexpected error".to_string())
+                }
+            })
     }
 }

@@ -8,4 +8,6 @@ pub use commands::CreateUserData;
 pub use entities::User;
 pub use errors::{DomainError, DomainResult};
 pub use repositories::UserRepository;
-pub use use_cases::{CreateUserUseCaseError, CreateUserUseCase, GetUserUseCaseError, GetUserUseCase};
+pub use use_cases::{
+    CreateUserUseCase, CreateUserUseCaseError, GetUserUseCase, GetUserUseCaseError,
+};
