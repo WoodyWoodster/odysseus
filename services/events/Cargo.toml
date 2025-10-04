@@ -1,11 +1,11 @@
 [package]
-name = "users"
+name = "events"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
 shared = { path = "../../shared" }
-migration = { path = "./migration", package = "users-migration" }
+migration = { path = "./migration", package = "events-migration" }
 actix-web.workspace = true
 tokio.workspace = true
 serde.workspace = true

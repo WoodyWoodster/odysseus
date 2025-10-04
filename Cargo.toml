@@ -2,6 +2,7 @@
 members = [
     "shared",
     "services/users",
+    "services/events",
 ]
 resolver = "2"
 

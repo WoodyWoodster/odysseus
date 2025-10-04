@@ -7,7 +7,7 @@ use super::super::dtos::{CreateUserError, CreateUserRequest, CreateUserResponse}
 
 #[utoipa::path(
     post,
-    path = "/api/users",
+    path = "/users/api/users",
     request_body = CreateUserRequest,
     responses(
         (status = 201, description = "User created successfully", body = CreateUserResponse),

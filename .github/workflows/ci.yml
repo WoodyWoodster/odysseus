@@ -15,14 +15,28 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      postgres:
+      postgres-users:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: odysseus
           POSTGRES_PASSWORD: odysseus_password
-          POSTGRES_DB: odysseus_db
+          POSTGRES_DB: users_db
         ports:
           - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres-events:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: odysseus
+          POSTGRES_PASSWORD: odysseus_password
+          POSTGRES_DB: events_db
+        ports:
+          - 5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -49,19 +63,34 @@ jobs:
     - name: Run clippy
       run: cargo clippy --all-targets --all-features -- -D warnings
 
-    - name: Run tests
-      run: cargo test --all-features --workspace
+    - name: Run users service tests
+      run: cargo test --all-features -p users
       env:
-        DATABASE_URL: postgres://odysseus:odysseus_password@localhost:5432/odysseus_db
+        DATABASE_URL: postgres://odysseus:odysseus_password@localhost:5432/users_db
+
+    - name: Run events service tests
+      run: cargo test --all-features -p events
+      env:
+        DATABASE_URL: postgres://odysseus:odysseus_password@localhost:5433/events_db
+
+    - name: Run shared library tests
+      run: cargo test --all-features -p shared
 
     - name: Build release
       run: cargo build --release --workspace
 
-    - name: Upload binary artifacts
+    - name: Upload users binary artifact
       uses: actions/upload-artifact@v4
       with:
         name: users-service-${{ github.sha }}
         path: target/release/users
+        retention-days: 30
+
+    - name: Upload events binary artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: events-service-${{ github.sha }}
+        path: target/release/events
         retention-days: 30
 
   docker:
@@ -101,5 +130,17 @@ jobs:
         tags: |
           ghcr.io/${{ steps.lowercase.outputs.owner }}/odysseus-users:latest
           ghcr.io/${{ steps.lowercase.outputs.owner }}/odysseus-users:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push events-service
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: services/events/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ steps.lowercase.outputs.owner }}/odysseus-events:latest
+          ghcr.io/${{ steps.lowercase.outputs.owner }}/odysseus-events:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max

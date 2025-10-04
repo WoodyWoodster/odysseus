@@ -7,7 +7,7 @@ COPY shared ./shared
 COPY services/users ./services/users
 COPY services/events ./services/events
 
-RUN cargo build --release -p users
+RUN cargo build --release -p events
 
 FROM debian:bookworm-slim
 
@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/users /app/users
+COPY --from=builder /app/target/release/events /app/events
 
-EXPOSE 8080
+EXPOSE 8081
 
-CMD ["/app/users"]
+CMD ["/app/events"]

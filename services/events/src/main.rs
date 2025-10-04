@@ -3,40 +3,40 @@ mod domain;
 
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use adapters::inbound::http::configure_routes;
-use adapters::outbound::persistence::UserRepositoryImpl;
-use domain::{CreateUserUseCase, GetUserUseCase};
+use adapters::outbound::persistence::EventRepositoryImpl;
+use domain::{CreateEventUseCase, GetEventUseCase};
 use sea_orm::{Database, DatabaseConnection};
-use sea_orm_migration::prelude::*;
+use sea_orm_migration::MigratorTrait;
 use std::sync::Arc;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use adapters::inbound::http::dtos::{
-    CreateUserError, CreateUserRequest, CreateUserResponse, GetUserError, GetUserResponse,
+    CreateEventError, CreateEventRequest, CreateEventResponse, GetEventError, GetEventResponse,
 };
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        adapters::inbound::http::handlers::get_user::get_user,
-        adapters::inbound::http::handlers::create_user::create_user,
+        adapters::inbound::http::handlers::get_event::get_event,
+        adapters::inbound::http::handlers::create_event::create_event,
     ),
     components(
         schemas(
-            CreateUserRequest,
-            CreateUserResponse,
-            CreateUserError,
-            GetUserResponse,
-            GetUserError
+            CreateEventRequest,
+            CreateEventResponse,
+            CreateEventError,
+            GetEventResponse,
+            GetEventError
         )
     ),
     tags(
-        (name = "users", description = "User management endpoints")
+        (name = "events", description = "Event management endpoints")
     ),
     info(
-        title = "Users Service API",
+        title = "Events Service API",
         version = "0.1.0",
-        description = "RESTful API for user management using hexagonal architecture"
+        description = "RESTful API for event management using hexagonal architecture"
     )
 )]
 struct ApiDoc;
@@ -71,13 +71,13 @@ async fn main() -> std::io::Result<()> {
     }
     println!("✅ Database migrations completed");
 
-    let user_repository = Arc::new(UserRepositoryImpl::new(db));
+    let event_repository = Arc::new(EventRepositoryImpl::new(db));
 
-    let get_user_use_case = web::Data::new(GetUserUseCase::new(user_repository.clone()));
-    let create_user_use_case = web::Data::new(CreateUserUseCase::new(user_repository.clone()));
+    let get_event_use_case = web::Data::new(GetEventUseCase::new(event_repository.clone()));
+    let create_event_use_case = web::Data::new(CreateEventUseCase::new(event_repository.clone()));
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    let port = std::env::var("PORT").unwrap_or_else(|_| "8081".to_string());
     let bind_address = format!("{}:{}", host, port);
 
     println!("🚀 Server starting on http://{}", bind_address);
@@ -91,10 +91,10 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .app_data(get_user_use_case.clone())
-            .app_data(create_user_use_case.clone())
+            .app_data(get_event_use_case.clone())
+            .app_data(create_event_use_case.clone())
             .service(
-                web::scope("/users")
+                web::scope("/events")
                     .configure(configure_routes)
                     .route(
                         "/api-docs/openapi.json",
@@ -112,7 +112,7 @@ async fn main() -> std::io::Result<()> {
                     )
                     .service(
                         SwaggerUi::new("/swagger-ui/{_:.*}")
-                            .url("/users/api-docs/openapi.json", openapi.clone()),
+                            .url("/events/api-docs/openapi.json", openapi.clone()),
                     ),
             )
     })

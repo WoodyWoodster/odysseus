@@ -1,17 +1,48 @@
 services:
-  postgres:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  postgres-users:
     image: postgres:16-alpine
-    container_name: odysseus-postgres
+    container_name: postgres-users
     environment:
       POSTGRES_USER: odysseus
       POSTGRES_PASSWORD: odysseus_password
-      POSTGRES_DB: odysseus_db
+      POSTGRES_DB: users_db
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_users_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U odysseus -d odysseus_db"]
+      test: ["CMD-SHELL", "pg_isready -U odysseus -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-events:
+    image: postgres:16-alpine
+    container_name: postgres-events
+    environment:
+      POSTGRES_USER: odysseus
+      POSTGRES_PASSWORD: odysseus_password
+      POSTGRES_DB: events_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_events_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odysseus -d events_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,15 +53,38 @@ services:
       dockerfile: services/users/Dockerfile
     container_name: users-service
     environment:
-      DATABASE_URL: postgres://odysseus:odysseus_password@postgres:5432/odysseus_db
+      DATABASE_URL: postgres://odysseus:odysseus_password@postgres-users:5432/users_db
       RUST_LOG: info
       HOST: 0.0.0.0
       PORT: 8080
-    ports:
-      - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.users.rule=PathPrefix(`/users`)"
+      - "traefik.http.routers.users.entrypoints=web"
+      - "traefik.http.services.users.loadbalancer.server.port=8080"
     depends_on:
-      postgres:
+      postgres-users:
+        condition: service_healthy
+
+  events-service:
+    build:
+      context: .
+      dockerfile: services/events/Dockerfile
+    container_name: events-service
+    environment:
+      DATABASE_URL: postgres://odysseus:odysseus_password@postgres-events:5432/events_db
+      RUST_LOG: info
+      HOST: 0.0.0.0
+      PORT: 8081
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.events.rule=PathPrefix(`/events`)"
+      - "traefik.http.routers.events.entrypoints=web"
+      - "traefik.http.services.events.loadbalancer.server.port=8081"
+    depends_on:
+      postgres-events:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  postgres_users_data:
+  postgres_events_data:

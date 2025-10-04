@@ -8,7 +8,7 @@ use super::super::dtos::{GetUserError, GetUserResponse};
 
 #[utoipa::path(
     get,
-    path = "/api/users/{id}",
+    path = "/users/api/users/{id}",
     params(
         ("id" = Uuid, Path, description = "User ID")
     ),
