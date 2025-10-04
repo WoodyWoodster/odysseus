@@ -3,7 +3,7 @@ use chrono::Utc;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use uuid::Uuid;
 
-use crate::domain::{CreateUserData, DomainError, DomainResult, User, UserRepository};
+use crate::domain::{use_cases::CreateUserParams, DomainError, DomainResult, User, UserRepository};
 
 use super::super::models::user::{ActiveModel, Entity as UserEntity};
 
@@ -29,7 +29,7 @@ impl UserRepository for UserRepositoryImpl {
         Ok(user.into())
     }
 
-    async fn create(&self, data: CreateUserData) -> DomainResult<User> {
+    async fn create(&self, data: CreateUserParams) -> DomainResult<User> {
         let now = Utc::now();
         let user_id = Uuid::new_v4();
 

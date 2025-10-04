@@ -2,9 +2,9 @@ use actix_web::{web, HttpResponse, Responder};
 use shared::UseCase;
 use uuid::Uuid;
 
-use crate::domain::{GetUserUseCase, GetUserUseCaseError, User};
+use crate::domain::{GetUserUseCase, GetUserUseCaseError};
 
-use super::super::dtos::GetUserError;
+use super::super::dtos::{GetUserError, GetUserResponse};
 
 #[utoipa::path(
     get,
@@ -13,7 +13,7 @@ use super::super::dtos::GetUserError;
         ("id" = Uuid, Path, description = "User ID")
     ),
     responses(
-        (status = 200, description = "User found successfully", body = User),
+        (status = 200, description = "User found successfully", body = GetUserResponse),
         (status = 404, description = "User not found", body = GetUserError),
         (status = 500, description = "Internal server error", body = GetUserError)
     ),
@@ -26,7 +26,10 @@ pub async fn get_user(
     let user_id = path.into_inner();
 
     match use_case.execute(user_id).await {
-        Ok(user) => HttpResponse::Ok().json(user),
+        Ok(user) => {
+            let response: GetUserResponse = user.into();
+            HttpResponse::Ok().json(response)
+        }
         Err(GetUserUseCaseError::NotFound(msg)) => {
             HttpResponse::NotFound().json(GetUserError { error: msg })
         }

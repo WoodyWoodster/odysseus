@@ -24,13 +24,13 @@ impl ActiveModelBehavior for ActiveModel {}
 // Implement From<Model> for User (model -> domain entity mapping)
 impl From<Model> for User {
     fn from(model: Model) -> Self {
-        User {
-            id: model.id,
-            email: model.email,
-            name: model.name,
-            created_at: model.created_at,
-            updated_at: model.updated_at,
-        }
+        User::new(
+            model.id,
+            model.email,
+            model.name,
+            model.created_at,
+            model.updated_at,
+        )
     }
 }
 
@@ -55,11 +55,11 @@ mod tests {
 
         let user: User = model.clone().into();
 
-        assert_eq!(user.id, id);
-        assert_eq!(user.email, "test@example.com");
-        assert_eq!(user.name, "Test User");
-        assert_eq!(user.created_at, now);
-        assert_eq!(user.updated_at, now);
+        assert_eq!(user.id(), id);
+        assert_eq!(user.email(), "test@example.com");
+        assert_eq!(user.name(), "Test User");
+        assert_eq!(*user.created_at(), now);
+        assert_eq!(*user.updated_at(), now);
     }
 
     #[test]
@@ -78,15 +78,15 @@ mod tests {
 
         let user: User = model.into();
 
-        assert_eq!(user.id, id, "ID should be preserved");
-        assert_eq!(user.email, "user@domain.com", "Email should be preserved");
-        assert_eq!(user.name, "John Doe", "Name should be preserved");
+        assert_eq!(user.id(), id, "ID should be preserved");
+        assert_eq!(user.email(), "user@domain.com", "Email should be preserved");
+        assert_eq!(user.name(), "John Doe", "Name should be preserved");
         assert_eq!(
-            user.created_at, created,
+            *user.created_at(), created,
             "Created timestamp should be preserved"
         );
         assert_eq!(
-            user.updated_at, updated,
+            *user.updated_at(), updated,
             "Updated timestamp should be preserved"
         );
     }
@@ -106,7 +106,7 @@ mod tests {
 
         let user: User = model.into();
 
-        assert_eq!(user.email, "test+filter@example.co.uk");
-        assert_eq!(user.name, "François O'Brien-Smith");
+        assert_eq!(user.email(), "test+filter@example.co.uk");
+        assert_eq!(user.name(), "François O'Brien-Smith");
     }
 }

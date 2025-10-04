@@ -5,9 +5,12 @@ use uuid::Uuid;
 
 use crate::domain::{DomainError, User, UserRepository};
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum GetUserUseCaseError {
+    #[error("User not found: {0}")]
     NotFound(String),
+
+    #[error("Database error: {0}")]
     DatabaseError(String),
 }
 

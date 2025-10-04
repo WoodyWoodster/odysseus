@@ -6,12 +6,14 @@ use adapters::inbound::http::configure_routes;
 use adapters::outbound::persistence::UserRepositoryImpl;
 use domain::{CreateUserUseCase, GetUserUseCase};
 use sea_orm::{Database, DatabaseConnection};
+use sea_orm_migration::prelude::*;
 use std::sync::Arc;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use adapters::inbound::http::dtos::{CreateUserError, CreateUserRequest, GetUserError};
-use domain::User;
+use adapters::inbound::http::dtos::{
+    CreateUserError, CreateUserRequest, CreateUserResponse, GetUserError, GetUserResponse,
+};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -20,7 +22,13 @@ use domain::User;
         adapters::inbound::http::handlers::create_user::create_user,
     ),
     components(
-        schemas(User, CreateUserRequest, CreateUserError, GetUserError)
+        schemas(
+            CreateUserRequest,
+            CreateUserResponse,
+            CreateUserError,
+            GetUserResponse,
+            GetUserError
+        )
     ),
     tags(
         (name = "users", description = "User management endpoints")
@@ -56,10 +64,17 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
+    println!("🔄 Running database migrations...");
+    if let Err(e) = migration::Migrator::up(&db, None).await {
+        eprintln!("❌ Failed to run migrations: {}", e);
+        std::process::exit(1);
+    }
+    println!("✅ Database migrations completed");
+
     let user_repository = Arc::new(UserRepositoryImpl::new(db));
 
     let get_user_use_case = web::Data::new(GetUserUseCase::new(user_repository.clone()));
-    let create_user_use_case = web::Data::new(CreateUserUseCase::new(user_repository));
+    let create_user_use_case = web::Data::new(CreateUserUseCase::new(user_repository.clone()));
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());

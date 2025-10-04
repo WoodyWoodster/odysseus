@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 shared = { path = "../../shared" }
+migration = { path = "./migration" }
 actix-web.workspace = true
 tokio.workspace = true
 serde.workspace = true
@@ -17,8 +18,10 @@ async-trait.workspace = true
 dotenvy.workspace = true
 log.workspace = true
 env_logger.workspace = true
+thiserror.workspace = true
 utoipa.workspace = true
 utoipa-swagger-ui.workspace = true
+sea-orm-migration = "1"
 
 # Constrain transitive dependencies to avoid edition2024 requirement
 [dependencies.const-oid]
