@@ -82,11 +82,13 @@ mod tests {
         assert_eq!(user.email(), "user@domain.com", "Email should be preserved");
         assert_eq!(user.name(), "John Doe", "Name should be preserved");
         assert_eq!(
-            *user.created_at(), created,
+            *user.created_at(),
+            created,
             "Created timestamp should be preserved"
         );
         assert_eq!(
-            *user.updated_at(), updated,
+            *user.updated_at(),
+            updated,
             "Updated timestamp should be preserved"
         );
     }
