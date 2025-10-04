@@ -30,11 +30,9 @@ pub async fn get_event(
             let response: GetEventResponse = event.into();
             HttpResponse::Ok().json(response)
         }
-        Err(GetEventUseCaseError::NotFound) => {
-            HttpResponse::NotFound().json(GetEventError {
-                error: "Event not found".to_string(),
-            })
-        }
+        Err(GetEventUseCaseError::NotFound) => HttpResponse::NotFound().json(GetEventError {
+            error: "Event not found".to_string(),
+        }),
         Err(GetEventUseCaseError::DatabaseError(msg)) => {
             HttpResponse::InternalServerError().json(GetEventError { error: msg })
         }

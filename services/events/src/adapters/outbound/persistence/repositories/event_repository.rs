@@ -3,7 +3,9 @@ use chrono::Utc;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use uuid::Uuid;
 
-use crate::domain::{use_cases::CreateEventParams, DomainError, DomainResult, Event, EventRepository};
+use crate::domain::{
+    use_cases::CreateEventParams, DomainError, DomainResult, Event, EventRepository,
+};
 
 use super::super::models::event::{ActiveModel, Entity as EventEntity};
 
