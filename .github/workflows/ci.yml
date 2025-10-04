@@ -10,38 +10,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-
-    services:
-      postgres-users:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: odysseus
-          POSTGRES_PASSWORD: odysseus_password
-          POSTGRES_DB: users_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      postgres-events:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: odysseus
-          POSTGRES_PASSWORD: odysseus_password
-          POSTGRES_DB: events_db
-        ports:
-          - 5433:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
     - name: Checkout code
@@ -63,18 +34,113 @@ jobs:
     - name: Run clippy
       run: cargo clippy --all-targets --all-features -- -D warnings
 
+  test-users:
+    name: Test Users Service
+    runs-on: ubuntu-latest
+
+    services:
+      postgres-users:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: odysseus
+          POSTGRES_PASSWORD: odysseus_password
+          POSTGRES_DB: users_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
     - name: Run users service tests
       run: cargo test --all-features -p users
       env:
         DATABASE_URL: postgres://odysseus:odysseus_password@localhost:5432/users_db
 
+  test-events:
+    name: Test Events Service
+    runs-on: ubuntu-latest
+
+    services:
+      postgres-events:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: odysseus
+          POSTGRES_PASSWORD: odysseus_password
+          POSTGRES_DB: events_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
     - name: Run events service tests
       run: cargo test --all-features -p events
       env:
-        DATABASE_URL: postgres://odysseus:odysseus_password@localhost:5433/events_db
+        DATABASE_URL: postgres://odysseus:odysseus_password@localhost:5432/events_db
+
+  test-shared:
+    name: Test Shared Library
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
 
     - name: Run shared library tests
       run: cargo test --all-features -p shared
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test-users, test-events, test-shared]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
 
     - name: Build release
       run: cargo build --release --workspace
@@ -93,10 +159,10 @@ jobs:
         path: target/release/events
         retention-days: 30
 
-  docker:
-    name: Docker Build & Push
+  docker-users:
+    name: Docker Build & Push - Users Service
     runs-on: ubuntu-latest
-    needs: test
+    needs: build
     if: github.ref == 'refs/heads/main'
 
     permissions:
@@ -132,6 +198,34 @@ jobs:
           ghcr.io/${{ steps.lowercase.outputs.owner }}/odysseus-users:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+  docker-events:
+    name: Docker Build & Push - Events Service
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Convert repository owner to lowercase
+      id: lowercase
+      run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
     - name: Build and push events-service
       uses: docker/build-push-action@v5
